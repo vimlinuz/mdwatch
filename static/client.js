@@ -58,21 +58,42 @@ function toggleTheme() {
   }
 }
 
-// Load saved theme on page load
-document.addEventListener("DOMContentLoaded", function () {
-  const savedTheme = localStorage.getItem("theme");
+function applyTheme(isDark) {
   const html = document.documentElement;
-  renderMermaid();
-  hljs.highlightAll();
-
-  if (savedTheme === "light") {
+  if (isDark) {
+    html.setAttribute("data-theme", "dark");
+    setThemeIcon("dark");
+    syncHighlightTheme("dark");
+  } else {
     html.setAttribute("data-theme", "light");
     setThemeIcon("light");
     syncHighlightTheme("light");
-  } else {
-    setThemeIcon("dark");
-    syncHighlightTheme("dark");
   }
+}
+
+function getPrefferedTheme() {
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "dark") return true;
+  if (savedTheme === "light") return false;
+  return mediaQuery.matches;
+}
+
+// Load saved theme on page load
+document.addEventListener("DOMContentLoaded", function () {
+  renderMermaid();
+  hljs.highlightAll();
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+  applyTheme(getPrefferedTheme());
+
+  mediaQuery.addEventListener("change", (e) => {
+    if (!localStorage.getItem("theme")) {
+      applyTheme(e.matches);
+    }
+  });
 });
 
 // Add smooth scrolling for anchor links
