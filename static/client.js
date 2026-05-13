@@ -71,9 +71,7 @@ function applyTheme(isDark) {
   }
 }
 
-function getPrefferedTheme() {
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
+function getPreferredTheme(mediaQuery) {
   const savedTheme = localStorage.getItem("theme");
   if (savedTheme === "dark") return true;
   if (savedTheme === "light") return false;
@@ -86,8 +84,7 @@ document.addEventListener("DOMContentLoaded", function () {
   hljs.highlightAll();
 
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-  applyTheme(getPrefferedTheme());
+  applyTheme(getPreferredTheme(mediaQuery));
 
   mediaQuery.addEventListener("change", (e) => {
     if (!localStorage.getItem("theme")) {
