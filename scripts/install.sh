@@ -31,7 +31,7 @@ fi
 
 case "$arch" in
     x86_64|amd64) arch="x86_64" ;;
-    arm64|aarch64) arch="arm64" ;;
+    arm64|aarch64) arch="aarch64" ;;
     *)
         echo -e "${FAIL} Unsupported architecture: $arch (x86_64 or arm64 only)"
         exit 1
