@@ -9,43 +9,30 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 jobs:
-  build:
+  check-version:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.changed.outputs.changed }}
+      version: ${{ steps.current.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # Check out the exact commit that triggered the Test workflow,
-          # not just whatever HEAD happens to be on main right now.
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
-
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
-
-
       - name: Get current version
         id: current
         run: |
           ver=$(grep '^version' Cargo.toml | head -1 | sed 's/.*version\s*=\s*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/')
           echo "version=$ver" >> $GITHUB_OUTPUT
-
-      # Compare against the parent commit (HEAD~1) instead of origin/main.
-      # After a merge, origin/main and HEAD point to the same commit, so
-      # comparing them always shows "no change". HEAD~1 is the last commit
-      # before this push, which is what we actually want to diff against.
       - name: Get previous version
         id: previous
         run: |
           prev_ver=$(git show HEAD~1:Cargo.toml | grep '^version' | head -1 | sed 's/.*version\s*=\s*["'"'"']\([^"'"'"']*\)["'"'"'].*/\1/')
           echo "version=$prev_ver" >> $GITHUB_OUTPUT
-
       - name: Check for version change
         id: changed
         run: |
@@ -57,41 +44,80 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
       - name: Publish to crates.io
-        if: steps.changed.outputs.changed == 'true'
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
-      - name: Tag and push version
-        if: steps.changed.outputs.changed == 'true'
-        env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-13
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Package release asset
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${{ steps.current.outputs.version }}"
-          git push origin "v${{ steps.current.outputs.version }}"
-
-      - name: Build release binaries
-        if: steps.changed.outputs.changed == 'true'
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
-
-      - name: Package release assets
-        if: steps.changed.outputs.changed == 'true'
-        run: |
-          version=${{ steps.current.outputs.version }}
+          version=${{ needs.check-version.outputs.version }}
+          asset_name="mdwatch-${version}-${{ matrix.target }}.tar.gz"
           mkdir -p dist
-          tar -czf "dist/mdwatch-${version}-x86_64-unknown-linux-gnu.tar.gz" -C "target/x86_64-unknown-linux-gnu/release" mdwatch
+          tar -czf "dist/${asset_name}" \
+            -C "target/${{ matrix.target }}/release" mdwatch
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/
 
+  release:
+    needs: [check-version, publish, build]
+    if: needs.check-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
       - name: Create GitHub Release
-        if: steps.changed.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          version=${{ steps.current.outputs.version }}
+          version=${{ needs.check-version.outputs.version }}
           gh release create "v${version}" \
             --title "v${version}" \
             --generate-notes \
+            --target "${{ github.event.workflow_run.head_sha }}" \
             dist/*.tar.gz
