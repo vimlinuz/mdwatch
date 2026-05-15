@@ -49,7 +49,7 @@ esac
 
 echo -e "${INFO} Detecting latest release..."
 latest_json=$(curl -sSfL "https://api.github.com/repos/${REPO}/releases/latest")
-tag=$(printf "%s" "$latest_json" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+tag=$(sed -nE 's/.*"tag_name":[[:space:]]*"([^"]+)".*/\1/p' <<< "$latest_json")
 
 if [ -z "$tag" ]; then
     echo -e "${FAIL} Failed to determine latest release tag."
