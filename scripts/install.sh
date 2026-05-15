@@ -33,7 +33,7 @@ case "$arch" in
     x86_64|amd64) arch="x86_64" ;;
     arm64|aarch64) arch="aarch64" ;;
     *)
-        echo -e "${FAIL} Unsupported architecture: $arch (x86_64 or arm64 only)"
+        echo -e "${FAIL} Unsupported architecture: $arch (x86_64/amd64 or arm64/aarch64 only)"
         exit 1
         ;;
 esac
@@ -49,7 +49,7 @@ esac
 
 echo -e "${INFO} Detecting latest release..."
 latest_json=$(curl -sSfL "https://api.github.com/repos/${REPO}/releases/latest")
-tag=$(sed -nE 's/.*"tag_name":[[:space:]]*"([^"]+)".*/\1/p' <<< "$latest_json")
+tag=$(printf "%s" "$latest_json" | sed -nE 's/.*"tag_name":[[:space:]]*"([^"]+)".*/\1/p')
 
 if [ -z "$tag" ]; then
     echo -e "${FAIL} Failed to determine latest release tag."
