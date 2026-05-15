@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
@@ -23,20 +23,29 @@ echo -e "${RESET}"
 os=$(uname -s)
 arch=$(uname -m)
 
-if [ "$os" != "Linux" ]; then
-    echo -e "${FAIL} Unsupported OS: $os (Linux only)"
+if [ "$os" != "Linux" ] && [ "$os" != "Darwin" ]; then
+    echo -e "${FAIL} Unsupported OS: $os (Linux and Darwin only)"
     exit 1
 fi
 
+
 case "$arch" in
     x86_64|amd64) arch="x86_64" ;;
+    arm64|aarch64) arch="arm64" ;;
     *)
-        echo -e "${FAIL} Unsupported architecture: $arch (x86_64 only)"
+        echo -e "${FAIL} Unsupported architecture: $arch (x86_64 or arm64 only)"
         exit 1
         ;;
 esac
 
-target="${arch}-unknown-linux-gnu"
+case "$os" in 
+    Linux)
+        target="${arch}-unknown-linux-gnu"
+    ;;
+    Darwin)
+        target="${arch}-apple-darwin"
+    ;;
+esac
 
 echo -e "${INFO} Detecting latest release..."
 latest_json=$(curl -sSfL "https://api.github.com/repos/${REPO}/releases/latest")
