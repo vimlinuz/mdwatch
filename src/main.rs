@@ -1,190 +1,21 @@
 mod args;
-mod utils;
+mod test;
+pub mod utils;
+mod ws_handler;
 
 use actix_files::NamedFile;
 use actix_web::App;
+use actix_web::HttpResponse;
 use actix_web::HttpServer;
-use actix_web::Responder;
 use actix_web::get;
 use actix_web::web;
-use actix_web::{HttpRequest, HttpResponse};
-use ammonia::Builder;
-use ammonia::UrlRelative::PassThrough;
 use args::MdwatchArgs;
 use askama::Template;
 use clap::Parser;
-use notify::event::RemoveKind;
-use notify_debouncer_full::DebouncedEvent;
-use notify_debouncer_full::{DebounceEventResult, new_debouncer, notify::*};
-use pulldown_cmark::Options;
-use regex::Regex;
 use std::path::PathBuf;
-use std::time::{Duration, Instant};
-use tokio::fs;
 
-use notify::RecursiveMode;
-use notify::event::ModifyKind;
-use rust_embed::Embed;
-use tokio::sync::mpsc;
-
-use utils::get_random_port;
-
-#[derive(Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/static"]
-#[prefix = "static/"]
-struct Static;
-
-fn get_embedded_file(file_path: &str) -> String {
-    match Static::get(file_path) {
-        Some(file) => match std::str::from_utf8(&file.data) {
-            Ok(content) => content.to_string(),
-            Err(e) => {
-                eprintln!("Failed to read embedded file: {e}");
-                String::new()
-            }
-        },
-        None => {
-            eprintln!("File not found in embedded files.");
-            String::new()
-        }
-    }
-}
-
-async fn ws_handler(
-    req: HttpRequest,
-    body: web::Payload,
-    file_info: web::Data<FileInfo>,
-) -> actix_web::Result<impl Responder> {
-    let (response, mut session, mut _msg_stream) = actix_ws::handle(&req, body)?;
-    let file = file_info.file.to_path_buf();
-
-    let file_name = match file.file_name() {
-        Some(name) => name.to_os_string(),
-        None => {
-            return Err(actix_web::error::ErrorInternalServerError(
-                "Failed to get file name",
-            ));
-        }
-    };
-
-    let base_dir = file_info.base_dir.to_path_buf();
-    let (watch_tx, mut notify_rx) = mpsc::unbounded_channel::<DebouncedEvent>();
-
-    let mut debouncer = new_debouncer(
-        Duration::from_millis(200),
-        None,
-        move |result: DebounceEventResult| match result {
-            Ok(events) => events.into_iter().for_each(|event| {
-                let _ = watch_tx.send(event);
-            }),
-            Err(errors) => errors
-                .iter()
-                .for_each(|error| eprintln!("watch error: {error:?}")),
-        },
-    )
-    .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    debouncer
-        .watch(&base_dir, RecursiveMode::Recursive)
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-
-    actix_web::rt::spawn(async move {
-        // Keep the watcher alive in this async task to keep the msg_stream alive
-        let _watcher = debouncer;
-
-        // here we initially set last_sent to 1 second ago to allow the first update to be sent immediately
-        let mut last_sent = Instant::now() - Duration::from_secs(1);
-
-        while let Some(event) = notify_rx.recv().await {
-            let is_selected_file = event.paths.iter().any(|p| {
-                p.file_name()
-                    .and_then(|name| name.to_str())
-                    .map(|name| name == file_name)
-                    .unwrap_or(false)
-            });
-
-            if is_selected_file {
-                if matches!(event.kind, EventKind::Remove(RemoveKind::File)) {
-                    eprintln!("File removed: {}", file.display());
-                    break;
-                }
-                let modified_selected_file =
-                    matches!(event.kind, EventKind::Modify(ModifyKind::Name(_)))
-                        || matches!(event.kind, EventKind::Modify(ModifyKind::Data(_)));
-
-                if modified_selected_file && last_sent.elapsed() >= Duration::from_secs(1) {
-                    let latest_markdown = match get_markdown(&file).await {
-                        Ok(md) => md,
-                        Err(e) => {
-                            eprintln!("Error reading markdown file: {e}");
-                            continue;
-                        }
-                    };
-                    last_sent = Instant::now();
-                    if session.text(latest_markdown).await.is_err() {
-                        break;
-                    }
-                }
-            }
-        }
-
-        let _ = session.close(None).await;
-    });
-
-    Ok(response)
-}
-
-/// Rewrite local image `src` attributes to use the `/_local_image/` prefix.
-/// Remote images (http://, https://, //, data:) are left untouched.
-fn rewrite_image_paths(html: &str) -> String {
-    let re = Regex::new(r#"(<img\s[^>]*?src\s*=\s*")([^"]*?)(")"#).expect("invalid regex");
-    re.replace_all(html, |caps: &regex::Captures| {
-        let prefix = &caps[1];
-        let src = &caps[2];
-        let suffix = &caps[3];
-        // Skip remote URLs and data URIs
-        if src.starts_with("http://")
-            || src.starts_with("https://")
-            || src.starts_with("//")
-            || src.starts_with("data:")
-        {
-            format!("{}{}{}", prefix, src, suffix)
-        } else {
-            format!("{}/_local_image/{}{}", prefix, src, suffix)
-        }
-    })
-    .to_string()
-}
-
-/// Sanitize HTML while preserving relative URLs (needed for /_local_image/ paths).
-fn sanitize_html(html: &str) -> String {
-    Builder::default()
-        .url_relative(PassThrough)
-        .add_generic_attributes(&["align"])
-        .add_tag_attributes("code", &["class"])
-        .clean(html)
-        .to_string()
-}
-
-fn rewrite_mermaid_tags(html: &str) -> String {
-    let re = Regex::new(r#"<pre><code class="language-mermaid">([\s\S]*?)</code></pre>"#)
-        .expect("invalid regex");
-    let src = r#"<pre class="mermaid">$1</pre>"#;
-    re.replace_all(html, src).to_string()
-}
-
-async fn get_markdown(file_path: &PathBuf) -> std::io::Result<String> {
-    let markdown_input: String = fs::read_to_string(file_path).await?;
-    let options = Options::all();
-    let parser = pulldown_cmark::Parser::new_ext(&markdown_input, options);
-
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
-    html_output = rewrite_image_paths(&html_output);
-    html_output = sanitize_html(&html_output);
-    html_output = rewrite_mermaid_tags(&html_output);
-    Ok(html_output)
-}
+use utils::{get_embedded_file, get_markdown, get_random_port};
+use ws_handler::ws_handler;
 
 #[derive(Template)]
 #[template(path = "main.html")]
@@ -298,7 +129,7 @@ async fn serve_local_image(
 }
 
 #[derive(Clone)]
-struct FileInfo {
+pub struct FileInfo {
     file: PathBuf,
     base_dir: PathBuf,
 }
@@ -351,47 +182,6 @@ async fn main() -> std::io::Result<()> {
         Err(e) => {
             eprintln!("Failed to start server: {e}");
             std::process::exit(1);
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    struct TestCase {
-        input: &'static str,
-        expected: &'static str,
-    }
-
-    #[test]
-    fn test_rewrite_image_paths() {
-        let test_cases = [
-            TestCase {
-                input: r#"<img src="image.png" alt="Image">"#,
-                expected: r#"<img src="/_local_image/image.png" alt="Image">"#,
-            },
-            TestCase {
-                input: r#"<img src="http://example.com/image.png" alt="Remote Image">"#,
-                expected: r#"<img src="http://example.com/image.png" alt="Remote Image">"#,
-            },
-            TestCase {
-                input: r#"<img src="data:image/png;base64,..." alt="Data URI">"#,
-                expected: r#"<img src="data:image/png;base64,..." alt="Data URI">"#,
-            },
-            TestCase {
-                input: r#"<img src="//example.com/image.png" alt="Protocol-relative URL">"#,
-                expected: r#"<img src="//example.com/image.png" alt="Protocol-relative URL">"#,
-            },
-        ];
-
-        for case in test_cases {
-            let result = rewrite_image_paths(case.input);
-            assert_eq!(
-                result, case.expected,
-                "Failed to rewrite image paths for input: {}",
-                case.input
-            );
         }
     }
 }

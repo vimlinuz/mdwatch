@@ -45,8 +45,8 @@ jobs:
           fi
 
   publish:
-    needs: check-version
-    if: needs.check-version.outputs.changed == 'true'
+    needs: [check-version, build]
+    if: needs.check-version.outputs.changed == 'true' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
