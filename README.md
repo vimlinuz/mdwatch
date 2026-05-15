@@ -4,6 +4,8 @@
     <img src="https://repology.org/badge/vertical-allrepos/mdwatch.svg" alt="Packaging status" align="right">
 </a>
 
+[![Release](https://github.com/vimlinuz/mdwatch/actions/workflows/cd.yml/badge.svg)](https://github.com/vimlinuz/mdwatch/actions/workflows/cd.yml)
+
 A simple command-line tool to preview Markdown files in a web browser. It serves the rendered HTML version of a Markdown file over HTTP, allowing you to easily preview your Markdown content locally.
 
 ## Features
