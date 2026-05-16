@@ -22,27 +22,6 @@ use ws_handler::ws_handler;
 struct Mdwatch {
     content: String,
     title: String,
-    style: String,
-    script: String,
-    lib: Libs,
-}
-
-struct Libs {
-    hljs_theme_dark: String,
-    hljs_theme_light: String,
-    hljs_script: String,
-    mermaid_script: String,
-}
-
-impl Default for Libs {
-    fn default() -> Self {
-        Self {
-            hljs_theme_dark: get_embedded_file("static/lib/github-dark.min.css"),
-            hljs_theme_light: get_embedded_file("static/lib/github-light.min.css"),
-            hljs_script: get_embedded_file("static/lib/highlight.min.js"),
-            mermaid_script: get_embedded_file("static/lib/mermaid.min.js"),
-        }
-    }
 }
 
 #[get("/")]
@@ -82,9 +61,6 @@ async fn home(file_info: web::Data<FileInfo>) -> actix_web::Result<HttpResponse>
     let template = Mdwatch {
         content: html_output,
         title: file_name.to_string_lossy().to_string(),
-        style: get_embedded_file("static/global.css"),
-        script: get_embedded_file("static/client.js"),
-        lib: Libs::default(),
     };
 
     match template.render() {
@@ -128,6 +104,37 @@ async fn serve_local_image(
     Ok(NamedFile::open(canonical)?)
 }
 
+#[get("/libs/{lib}")]
+async fn serve_libs(lib: web::Path<String>) -> actix_web::Result<HttpResponse> {
+    let (content, content_type) = match lib.as_str() {
+        "hljs-theme-dark" => (
+            get_embedded_file("static/lib/github-dark.min.css"),
+            "text/css",
+        ),
+        "hljs-theme-light" => (
+            get_embedded_file("static/lib/github-light.min.css"),
+            "text/css",
+        ),
+        "style" => (get_embedded_file("static/global.css"), "text/css"),
+        "mermaid-script" => (
+            get_embedded_file("static/lib/mermaid.min.js"),
+            "application/javascript",
+        ),
+        "hljs-script" => (
+            get_embedded_file("static/lib/highlight.min.js"),
+            "application/javascript",
+        ),
+        "client" => (
+            get_embedded_file("static/client.js"),
+            "application/javascript",
+        ),
+        _ => {
+            return Err(actix_web::error::ErrorNotFound("lib not found"));
+        }
+    };
+    Ok(HttpResponse::Ok().content_type(content_type).body(content))
+}
+
 #[derive(Clone)]
 pub struct FileInfo {
     file: PathBuf,
@@ -169,6 +176,7 @@ async fn main() -> std::io::Result<()> {
             .route("/ws", web::get().to(ws_handler))
             .service(home)
             .service(serve_local_image)
+            .service(serve_libs)
             .app_data(web::Data::new(file_info.clone()))
     })
     .bind(format!("{}:{}", ip, port))
