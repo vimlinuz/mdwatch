@@ -3,20 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style id="hljs-theme-dark">
-      {{ lib.hljs_theme_dark | safe }}
-    </style>
-    <style id="hljs-theme-light" disabled>
-      {{ lib.hljs_theme_light | safe }}
-    </style>
-
-    <script>{{lib.mermaid_script|safe}}</script>
-    <script>{{lib.hljs_script | safe}}</script>
+    <link rel="stylesheet" href="/libs/hljs-theme-dark" id="hljs-theme-dark" />
+    <link
+      rel="stylesheet"
+      href="/libs/hljs-theme-light"
+      id="hljs-theme-light"
+      disabled
+    />
+    <script src="/libs/mermaid-script"></script>
+    <script src="/libs/hljs-script"></script>
 
     <title>{{ title }} - mdwatch</title>
-    <style>
-      {{ style | safe }}
-    </style>
+    <link rel="stylesheet" href="/libs/style" />
   </head>
   <body>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
@@ -36,6 +34,6 @@
       </svg>
     </button>
     <article id="content">{{content | safe}}</article>
-    <script>{{script | safe}}</script>
+    <script src="/libs/client"></script>
   </body>
 </html>
