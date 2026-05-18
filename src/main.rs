@@ -14,7 +14,7 @@ use askama::Template;
 use clap::Parser;
 use std::path::PathBuf;
 
-use utils::{get_embedded_file, get_markdown, get_random_port};
+use utils::{get_embedded_file, get_local_ip, get_markdown, get_random_port};
 use ws_handler::ws_handler;
 
 #[derive(Template)]
@@ -146,7 +146,7 @@ async fn main() -> std::io::Result<()> {
     let args = MdwatchArgs::parse();
 
     let file = args.file;
-    let ip = args.ip;
+    let mut ip = args.ip;
     let port = args.port.unwrap_or_else(get_random_port);
 
     // Resolve the parent directory of the markdown file for serving local images
@@ -166,6 +166,7 @@ async fn main() -> std::io::Result<()> {
     if ip == "0.0.0.0" {
         eprintln!("  Warning: Binding to 0.0.0.0 exposes your server to the entire network!");
         eprintln!("         Make sure you trust your network or firewall settings.");
+        ip = get_local_ip().unwrap_or(String::from("0.0.0.0"));
     }
 
     println!("Server running at:");

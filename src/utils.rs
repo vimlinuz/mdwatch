@@ -3,6 +3,7 @@ use ammonia::UrlRelative::PassThrough;
 use pulldown_cmark::Options;
 use regex::Regex;
 use rust_embed::Embed;
+use std::net::UdpSocket;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
@@ -16,6 +17,14 @@ pub fn get_random_port() -> u16 {
         }
         Err(_) => 8080,
     }
+}
+
+pub fn get_local_ip() -> Option<String> {
+    // os will choose an available ephemeral port.
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("8.8.8.8:80").ok()?;
+    let ip = socket.local_addr().ok()?.ip();
+    Some(ip.to_string())
 }
 
 #[derive(Embed)]

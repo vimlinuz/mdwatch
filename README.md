@@ -49,7 +49,7 @@ curl -sSfL https://raw.githubusercontent.com/vimlinuz/mdwatch/main/scripts/insta
 ```
 
 - This script will:
-  1. Download the latest prebuilt Linux x86_64 release binary.
+  1. Download the latest prebuilt Linux x86_64 or aarch64-apple-darwin release binary.
   2. Install it to `~/.local/bin` (or `$INSTALL_DIR`).
   3. Make it executable.
 
@@ -96,19 +96,24 @@ If you prefer full control or want to customize the build:
 
 ---
 
-## Using with Nix (Flakes)
+## Using with Nix
 
-If you have [Nix](https://nixos.org/download.html) (version 2.4 or later) with flakes enabled, you can use `nix run` to run `mdwatch` without installing Rust or any dependencies globally. You can also use `nix develop` to get a full development environment for hacking on the project.
+mdwatch is packaged in [nixpkgs](https://github.com/NixOS/nixpkgs) so you can install it by adding `pkgs.mdwatch` to your
+`environment.systemPackages`.
 
-### Run mdwatch instantly (no install needed)
-
-#### From the current directory
+Additionally, you can try it in a temporary shell using `nix shell`:
 
 ```bash
-nix run
+nix shell nixpkgs#mdwatch
 ```
 
-This will build and run the latest version of `mdwatch` from the flake in the current directory. You can pass arguments as usual:
+After entering the shell, run `mdwatch` normally:
+
+```bash
+mdwatch README.md [--ip 127.0.0.1] [--port 3000]
+```
+
+If you prefer one-off execution without entering a shell, use `nix run`:
 
 ```bash
 nix run . -- README.md [--ip 127.0.0.1] [--port 3000]
@@ -219,4 +224,4 @@ This will serve the Markdown file accessible on all network interfaces and open 
 
 ## License
 
-The project is made available under the MIT license. See the `LICENSE` file for more information.
+The project is made available under the MIT license. See the [MIT License](LICENSE) file for more information.
