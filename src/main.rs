@@ -190,7 +190,7 @@ async fn main() -> std::io::Result<()> {
     .bind(format!("{}:{}", ip, port))
     {
         Ok(server) => {
-            if let Err(e) = webbrowser::open(&format!("http://localhost:{}/", port)) {
+            if let Err(e) = webbrowser::open(&format!("http://{}:{}/", ip, port)) {
                 eprintln!("Failed to open browser: {e}");
             }
             server.run().await
