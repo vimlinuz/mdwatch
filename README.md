@@ -101,13 +101,19 @@ If you prefer full control or want to customize the build:
 mdwatch is packaged in [nixpkgs](https://github.com/NixOS/nixpkgs) so you can install it by adding `pkgs.mdwatch` to your
 `environment.systemPackages`.
 
-Additionally you can try it in `nix-shell` .
+Additionally, you can try it in a temporary shell using `nix shell`:
 
 ```bash
 nix shell nixpkgs#mdwatch
 ```
 
-You can pass arguments as usual while running by `nix run`:
+After entering the shell, run `mdwatch` normally:
+
+```bash
+mdwatch README.md [--ip 127.0.0.1] [--port 3000]
+```
+
+If you prefer one-off execution without entering a shell, use `nix run`:
 
 ```bash
 nix run . -- README.md [--ip 127.0.0.1] [--port 3000]
