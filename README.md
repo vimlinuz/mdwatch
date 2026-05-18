@@ -218,4 +218,4 @@ This will serve the Markdown file accessible on all network interfaces and open 
 
 ## License
 
-The project is made available under the MIT license. See the [MIT License](COPYING) file for more information.
+The project is made available under the MIT license. See the [MIT License](LICENSE) file for more information.
