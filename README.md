@@ -185,13 +185,14 @@ cargo uninstall mdwatch
 Run the tool with the required and optional arguments:
 
 ```bash
-mdwatch README.md [--ip 127.0.0.1] [--port 3000]
-
+mdwatch README.md [--ip 127.0.0.1] [--public] [--port 3000]
 ```
 
 - `file`: Path to the Markdown file to preview (required)
 
-- `--ip`: IP address to bind the server to (default: 127.0.0.1)
+- `--ip`: IP address to bind the server to (default: 127.0.0.1). Cannot be used with `--public`.
+
+- `--public`: Bind to all interfaces (0.0.0.0). Use this to make the preview reachable from other devices on your network.
 
 - `--port`: Port number for the server (If not provided, a random port will be used)
 
@@ -206,7 +207,7 @@ mdwatch README.md [--ip 127.0.0.1] [--port 3000]
 # Example
 
 ```bash
-mdwatch  notes.md --ip 0.0.0.0 --port 8080
+mdwatch notes.md --public --port 8080
 ```
 
 This will serve the Markdown file accessible on all network interfaces and open the preview at

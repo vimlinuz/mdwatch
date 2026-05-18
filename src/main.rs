@@ -146,7 +146,12 @@ async fn main() -> std::io::Result<()> {
     let args = MdwatchArgs::parse();
 
     let file = args.file;
-    let mut ip = args.ip;
+    let ip = if args.public {
+        String::from("0.0.0.0")
+    } else {
+        args.ip
+    };
+
     let port = args.port.unwrap_or_else(get_random_port);
 
     // Resolve the parent directory of the markdown file for serving local images
@@ -166,11 +171,13 @@ async fn main() -> std::io::Result<()> {
     if ip == "0.0.0.0" {
         eprintln!("  Warning: Binding to 0.0.0.0 exposes your server to the entire network!");
         eprintln!("         Make sure you trust your network or firewall settings.");
-        ip = get_local_ip().unwrap_or(String::from("0.0.0.0"));
+        let local_ip = get_local_ip().unwrap_or(String::from("0.0.0.0"));
+        println!("Server running at:");
+        println!(" - http://{}:{}/", local_ip, port);
+    } else {
+        println!("Server running at:");
+        println!(" - http://{}:{}/", ip, port);
     }
-
-    println!("Server running at:");
-    println!(" - http://{}:{}/", ip, port);
 
     match HttpServer::new(move || {
         App::new()
