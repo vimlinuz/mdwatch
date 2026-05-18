@@ -38,12 +38,9 @@ pub async fn ws_handler(
             Ok(events) => events.into_iter().for_each(|event| {
                 let _ = watch_tx.send(event);
             }),
-            Err(errors) => errors.iter().for_each(|error| {
-                eprintln!(
-                    "{} Watch error: {error:?}",
-                    "Error:".red().bold()
-                )
-            }),
+            Err(errors) => errors
+                .iter()
+                .for_each(|error| eprintln!("{} Watch error: {error:?}", "Error:".red().bold())),
         },
     )
     .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -84,10 +81,7 @@ pub async fn ws_handler(
                     let latest_markdown = match get_markdown(&file).await {
                         Ok(md) => md,
                         Err(e) => {
-                            eprintln!(
-                                "{} Error reading markdown file: {e}",
-                                "Error:".red().bold()
-                            );
+                            eprintln!("{} Error reading markdown file: {e}", "Error:".red().bold());
                             continue;
                         }
                     };

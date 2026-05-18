@@ -53,7 +53,10 @@ async fn home(file_info: web::Data<FileInfo>) -> actix_web::Result<HttpResponse>
     let html_output = match get_markdown(&file.to_path_buf()).await {
         Ok(html) => html,
         Err(e) => {
-            eprintln!("{} Error processing markdown file: {e}", "Error:".red().bold());
+            eprintln!(
+                "{} Error processing markdown file: {e}",
+                "Error:".red().bold()
+            );
             return Err(actix_web::error::ErrorInternalServerError(
                 "Failed to process markdown file",
             ));
