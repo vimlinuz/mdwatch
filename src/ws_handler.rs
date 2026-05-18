@@ -1,4 +1,5 @@
 use actix_web::{HttpRequest, Responder, web};
+use colored::Colorize;
 use notify::RecursiveMode;
 use notify::event::ModifyKind;
 use notify::event::RemoveKind;
@@ -37,9 +38,12 @@ pub async fn ws_handler(
             Ok(events) => events.into_iter().for_each(|event| {
                 let _ = watch_tx.send(event);
             }),
-            Err(errors) => errors
-                .iter()
-                .for_each(|error| eprintln!("watch error: {error:?}")),
+            Err(errors) => errors.iter().for_each(|error| {
+                eprintln!(
+                    "{} Watch error: {error:?}",
+                    "Error:".red().bold()
+                )
+            }),
         },
     )
     .map_err(actix_web::error::ErrorInternalServerError)?;
@@ -65,7 +69,11 @@ pub async fn ws_handler(
 
             if is_selected_file {
                 if matches!(event.kind, EventKind::Remove(RemoveKind::File)) {
-                    eprintln!("File removed: {}", file.display());
+                    eprintln!(
+                        "{} File removed: {}",
+                        "Warning:".yellow().bold(),
+                        file.display()
+                    );
                     break;
                 }
                 let modified_selected_file =
@@ -76,7 +84,10 @@ pub async fn ws_handler(
                     let latest_markdown = match get_markdown(&file).await {
                         Ok(md) => md,
                         Err(e) => {
-                            eprintln!("Error reading markdown file: {e}");
+                            eprintln!(
+                                "{} Error reading markdown file: {e}",
+                                "Error:".red().bold()
+                            );
                             continue;
                         }
                     };

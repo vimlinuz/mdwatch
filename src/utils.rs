@@ -1,5 +1,6 @@
 use ammonia::Builder;
 use ammonia::UrlRelative::PassThrough;
+use colored::Colorize;
 use pulldown_cmark::Options;
 use regex::Regex;
 use rust_embed::Embed;
@@ -37,12 +38,18 @@ pub fn get_embedded_file(file_path: &str) -> String {
         Some(file) => match std::str::from_utf8(&file.data) {
             Ok(content) => content.to_string(),
             Err(e) => {
-                eprintln!("Failed to read embedded file: {e}");
+                eprintln!(
+                    "{} Failed to read embedded file: {e}",
+                    "Error:".red().bold()
+                );
                 String::new()
             }
         },
         None => {
-            eprintln!("File not found in embedded files.");
+            eprintln!(
+                "{} File not found in embedded files.",
+                "Error:".red().bold()
+            );
             String::new()
         }
     }
