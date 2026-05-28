@@ -13,9 +13,12 @@ use args::MdwatchArgs;
 use askama::Template;
 use clap::Parser;
 use colored::Colorize;
+use local_ip_address::local_ip;
+
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 
-use utils::{get_embedded_file, get_local_ip, get_markdown, get_random_port};
+use utils::{get_embedded_file, get_markdown, get_random_port};
 use ws_handler::ws_handler;
 
 #[derive(Template)]
@@ -182,7 +185,7 @@ async fn main() -> std::io::Result<()> {
             "{} Make sure you trust your network or firewall settings.",
             "Note:".yellow()
         );
-        let local_ip = get_local_ip().unwrap_or(String::from("0.0.0.0"));
+        let local_ip = local_ip().unwrap_or(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)));
         println!("{}", "Server running at:".green().bold());
         println!(" - {}", format!("http://{}:{}/", local_ip, port).cyan());
     } else {
