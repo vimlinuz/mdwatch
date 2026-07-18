@@ -24,27 +24,26 @@ os=$(uname -s)
 arch=$(uname -m)
 
 if [ "$os" != "Linux" ] && [ "$os" != "Darwin" ]; then
-    echo -e "${FAIL} Unsupported OS: $os (Linux and Darwin only)"
-    exit 1
+  echo -e "${FAIL} Unsupported OS: $os (Linux and Darwin only)"
+  exit 1
 fi
 
-
 case "$arch" in
-    x86_64|amd64) arch="x86_64" ;;
-    arm64|aarch64) arch="aarch64" ;;
-    *)
-        echo -e "${FAIL} Unsupported architecture: $arch (x86_64/amd64 or arm64/aarch64 only)"
-        exit 1
-        ;;
+x86_64 | amd64) arch="x86_64" ;;
+arm64 | aarch64) arch="aarch64" ;;
+*)
+  echo -e "${FAIL} Unsupported architecture: $arch (x86_64/amd64 or arm64/aarch64 only)"
+  exit 1
+  ;;
 esac
 
-case "$os" in 
-    Linux)
-        target="${arch}-unknown-linux-gnu"
-    ;;
-    Darwin)
-        target="${arch}-apple-darwin"
-    ;;
+case "$os" in
+Linux)
+  target="${arch}-unknown-linux-gnu"
+  ;;
+Darwin)
+  target="${arch}-apple-darwin"
+  ;;
 esac
 
 echo -e "${INFO} Detecting latest release..."
@@ -52,8 +51,8 @@ latest_json=$(curl -sSfL "https://api.github.com/repos/${REPO}/releases/latest")
 tag=$(printf "%s" "$latest_json" | sed -nE 's/.*"tag_name":[[:space:]]*"([^"]+)".*/\1/p')
 
 if [ -z "$tag" ]; then
-    echo -e "${FAIL} Failed to determine latest release tag."
-    exit 1
+  echo -e "${FAIL} Failed to determine latest release tag."
+  exit 1
 fi
 
 asset="mdwatch-${tag#v}-${target}.tar.gz"
@@ -65,17 +64,17 @@ trap cleanup EXIT
 
 echo -e "${INFO} Downloading ${asset}..."
 if ! curl -sSfL "$url" -o "$tmp_dir/$asset"; then
-    echo -e "${YELLOW}No prebuilt binary for ${target}.${RESET}"
-    echo -e "${YELLOW}You can install via Cargo instead:${RESET} cargo install mdwatch"
-    exit 1
+  echo -e "${YELLOW}No prebuilt binary for ${target}.${RESET}"
+  echo -e "${YELLOW}You can install via Cargo instead:${RESET} cargo install mdwatch"
+  exit 1
 fi
 
 echo -e "${INFO} Extracting archive..."
 tar -xzf "$tmp_dir/$asset" -C "$tmp_dir"
 
 if [ ! -f "$tmp_dir/mdwatch" ]; then
-    echo -e "${FAIL} Extracted binary not found."
-    exit 1
+  echo -e "${FAIL} Extracted binary not found."
+  exit 1
 fi
 
 mkdir -p "$INSTALL_DIR"
@@ -85,10 +84,10 @@ chmod +x "$INSTALL_DIR/mdwatch"
 echo -e "${CHECK} mdwatch installed to ${INSTALL_DIR}."
 
 case ":$PATH:" in
-    *":$INSTALL_DIR:"*)
-        echo -e "${CHECK} You can now run '${BOLD}mdwatch${RESET}' from anywhere in your terminal."
-        ;;
-    *)
-        echo -e "${YELLOW}Add ${INSTALL_DIR} to your PATH to run 'mdwatch' globally.${RESET}"
-        ;;
+*":$INSTALL_DIR:"*)
+  echo -e "${CHECK} You can now run '${BOLD}mdwatch${RESET}' from anywhere in your terminal."
+  ;;
+*)
+  echo -e "${YELLOW}Add ${INSTALL_DIR} to your PATH to run 'mdwatch' globally.${RESET}"
+  ;;
 esac
