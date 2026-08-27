@@ -1351,7 +1351,7 @@ dependencies = [
 
 [[package]]
 name = "mdwatch"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "actix-files",
  "actix-web",
