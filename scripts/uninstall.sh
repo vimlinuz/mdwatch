@@ -24,13 +24,13 @@ REPO_DIR="$HOME/mdwatch"
 echo -e "${INFO} Removing mdwatch binary..."
 
 if [ -f "$SYSTEM_INSTALL_PATH" ]; then
-    sudo rm -f "$SYSTEM_INSTALL_PATH"
-    echo -e "${CHECK} Removed mdwatch binary from ${SYSTEM_INSTALL_PATH}"
+  sudo rm -f "$SYSTEM_INSTALL_PATH"
+  echo -e "${CHECK} Removed mdwatch binary from ${SYSTEM_INSTALL_PATH}"
 elif [ -f "$USER_INSTALL_PATH" ]; then
-    rm -f "$USER_INSTALL_PATH"
-    echo -e "${CHECK} Removed mdwatch binary from ${USER_INSTALL_PATH}"
+  rm -f "$USER_INSTALL_PATH"
+  echo -e "${CHECK} Removed mdwatch binary from ${USER_INSTALL_PATH}"
 else
-    echo -e "${FAIL} mdwatch binary not found at ${SYSTEM_INSTALL_PATH} and ${USER_INSTALL_PATH}"
+  echo -e "${FAIL} mdwatch binary not found at ${SYSTEM_INSTALL_PATH} and ${USER_INSTALL_PATH}"
 fi
 
 echo -e "${INFO} Removing mdwatch repository..."
