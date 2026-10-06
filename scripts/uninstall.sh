@@ -17,16 +17,20 @@ echo "┃           mdwatch Uninstaller         ┃"
 echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
 echo -e "${RESET}"
 
-INSTALL_PATH="/usr/local/bin/mdwatch"
+SYSTEM_INSTALL_PATH="/usr/local/bin/mdwatch"
+USER_INSTALL_PATH="$HOME/.local/bin/mdwatch"
 REPO_DIR="$HOME/mdwatch"
 
 echo -e "${INFO} Removing mdwatch binary..."
 
-if [ ! -f "$INSTALL_PATH" ]; then
-  echo -e "${FAIL} mdwatch binary not found at ${INSTALL_PATH}"
+if [ -f "$SYSTEM_INSTALL_PATH" ]; then
+    sudo rm -f "$SYSTEM_INSTALL_PATH"
+    echo -e "${CHECK} Removed mdwatch binary from ${SYSTEM_INSTALL_PATH}"
+elif [ -f "$USER_INSTALL_PATH" ]; then
+    rm -f "$USER_INSTALL_PATH"
+    echo -e "${CHECK} Removed mdwatch binary from ${USER_INSTALL_PATH}"
 else
-  sudo rm -f "$INSTALL_PATH"
-  echo -e "${CHECK} Removed mdwatch binary from ${INSTALL_PATH}"
+    echo -e "${FAIL} mdwatch binary not found at ${SYSTEM_INSTALL_PATH} and ${USER_INSTALL_PATH}"
 fi
 
 echo -e "${INFO} Removing mdwatch repository..."
