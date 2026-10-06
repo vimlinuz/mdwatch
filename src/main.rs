@@ -109,7 +109,7 @@ async fn serve_local_image(
         ));
     }
 
-    Ok(NamedFile::open(canonical)?)
+    Ok(NamedFile::open_async(canonical).await?)
 }
 
 #[get("/libs/{lib}")]
