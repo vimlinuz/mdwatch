@@ -1,3 +1,17 @@
+function renderLatex(root = document) {
+  if (typeof katex === "undefined") return;
+
+  root
+    .querySelectorAll(".math.math-inline, .math.math-display")
+    .forEach((el) => {
+      if (el.querySelector(".katex")) return;
+      katex.render(el.textContent, el, {
+        throwOnError: false,
+        displayMode: el.classList.contains("math-display"),
+      });
+    });
+}
+
 async function renderMermaid() {
   mermaid.initialize({ startOnLoad: false });
 
@@ -81,6 +95,7 @@ function getPreferredTheme(mediaQuery) {
 // Load saved theme on page load
 document.addEventListener("DOMContentLoaded", function () {
   renderMermaid();
+  renderLatex();
   hljs.highlightAll();
 
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -118,6 +133,7 @@ ws.onmessage = (event) => {
   const date = new Date();
   console.log(`updating content: ${date.toLocaleTimeString()}`);
   content.innerHTML = event.data;
+  renderLatex(content);
   hljs.highlightAll();
   renderMermaid();
 };
