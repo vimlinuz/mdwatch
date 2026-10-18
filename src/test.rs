@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::utils::rewrite_image_paths;
+    use crate::utils::{rewrite_image_paths, sanitize_html};
 
     struct TestCase {
         input: &'static str,
@@ -36,5 +36,25 @@ mod tests {
                 case.input
             );
         }
+    }
+
+    #[test]
+    fn test_sanitize_preserves_math_and_code_classes() {
+        let input = r#"<p><span class="math math-inline">E = mc^2</span></p>
+<pre><code class="language-rust">fn main() {}</code></pre>
+<pre class="mermaid">graph TD; A;</pre>"#;
+        let result = sanitize_html(input);
+        assert!(
+            result.contains(r#"class="math math-inline""#),
+            "math class stripped: {result}"
+        );
+        assert!(
+            result.contains(r#"class="language-rust""#),
+            "code language class stripped: {result}"
+        );
+        assert!(
+            result.contains(r#"class="mermaid""#),
+            "mermaid class stripped: {result}"
+        );
     }
 }

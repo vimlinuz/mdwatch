@@ -69,11 +69,13 @@ pub fn rewrite_image_paths(html: &str) -> String {
 }
 
 /// Sanitize HTML while preserving relative URLs (needed for /_local_image/ paths).
+/// `class` must be a generic attribute: ammonia's default whitelist is only `lang` and
+/// `title`, so math (`math-inline` / `math-display`), mermaid, and fenced-code language
+/// classes would otherwise be stripped.
 pub fn sanitize_html(html: &str) -> String {
     Builder::default()
         .url_relative(PassThrough)
-        .add_generic_attributes(&["align"])
-        .add_tag_attributes("code", &["class"])
+        .add_generic_attributes(&["align", "class"])
         .clean(html)
         .to_string()
 }
