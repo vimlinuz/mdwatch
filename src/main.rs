@@ -123,6 +123,7 @@ async fn serve_libs(lib: web::Path<String>) -> actix_web::Result<HttpResponse> {
             get_embedded_file("static/lib/github-light.min.css"),
             "text/css",
         ),
+        "katex-style" => (get_embedded_file("static/lib/katex.min.css"), "text/css"),
         "style" => (get_embedded_file("static/global.css"), "text/css"),
         "mermaid-script" => (
             get_embedded_file("static/lib/mermaid.min.js"),
@@ -130,6 +131,10 @@ async fn serve_libs(lib: web::Path<String>) -> actix_web::Result<HttpResponse> {
         ),
         "hljs-script" => (
             get_embedded_file("static/lib/highlight.min.js"),
+            "application/javascript",
+        ),
+        "katex-script" => (
+            get_embedded_file("static/lib/katex.min.js"),
             "application/javascript",
         ),
         "client" => (
